@@ -65,6 +65,7 @@ void start_beginning_timer(int restarting=0){
 
 //funzioni di display dello schermo lcd
 void display_starting_screen(){
+  lcd.clear();
   lcd.setCursor(2,0);
   lcd.print("Welcome to GMB!");
   lcd.setCursor(1,1);
@@ -89,6 +90,13 @@ void gameOver(){
   Serial.println("Game Over!");
   Serial.print("Your final score:");
   Serial.println(score);
+  lcd.clear();
+  lcd.setCursor(1,0);
+  lcd.print("Game Over!");
+  lcd.setCursor(1,1);
+  lcd.print("Your final score:");
+  lcd.setCursor(1,2);
+  lcd.print(score);
   score = 0;
   Timer1.detachInterrupt();
 
@@ -106,6 +114,7 @@ void gameOver(){
   delay(9000);
   status = READY;
   
+  display_starting_screen();
   start_beginning_timer();
 }
 
@@ -131,7 +140,16 @@ void display_round(){
   lcd.print(current_guess);
 }
 
-
+void display_success(){
+      lcd.clear();
+        lcd.setCursor(1,0);
+        lcd.print("GOOD!");
+        lcd.setCursor(1,1);
+        lcd.print("Your score:");
+        lcd.setCursor(1,2);
+        lcd.print(score);
+        delay(1500);
+}
 
 
 //inizializza l'ambiente di gioco per un round in base al numero del round
@@ -146,7 +164,9 @@ void start_game(){
     led_status[i] = 0;
     digitalWrite(output_leds[i],LOW);
   }
-  animate_start_round();
+  if(current_round<=1){
+    animate_start_round();
+  }
   start_beginning_timer();
   display_round();
 }
@@ -170,6 +190,8 @@ void check_ready(){
     Timer1.detachInterrupt();
     digitalWrite(LED_OUTPUT,LOW);
     Serial.println("Went offline");
+    lcd.clear();
+    lcd.noBacklight();
   }
   else{
     //scrivi difficolata attualmente selezionata
@@ -194,6 +216,8 @@ void check_off(){
     status = READY;
     start_beginning_timer(1);
     Serial.println("Ready to restart");
+    lcd.backlight();
+    display_starting_screen();
     delay(300);
   }
 }
@@ -252,6 +276,7 @@ void play(){
         Serial.println("Guessed correctly");
         Serial.print("Your score:");
         Serial.println(score);
+        display_success();
         start_game();
     }
     else{
@@ -275,7 +300,7 @@ void play(){
 
 void setup() {
   //randomizza seed per i numeri da generare
-  srand(time(NULL));
+  srand(analogRead(-1));
   //setup pins
   pinMode(LED_OUTPUT, OUTPUT);
   for(int i = 0;i<4;i++){
