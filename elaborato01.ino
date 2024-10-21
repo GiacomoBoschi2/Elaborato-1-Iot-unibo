@@ -8,15 +8,18 @@
 #define LED_PINB3 4
 #define LED_PINB2 3
 #define LED_PINB1 2
-#define LED_OUTPUT 7
+#define LED_OUTPUT 6
 #define OUTPUT_LED_OFFSET 2     
 #define TIME_LIMIT_FOR_STARTING 10000000
 #define TICK 10000
 #define TICK_PER_SECOND 1000000
+#define TICK_LED_OUTPUT 1000
 #define STARTING_END_TIME 20000000
 #define POTENTIOMETER A0
 #define GET_SCORE(left,level,max_time) (((level)*10)+((((max_time)-(left))*100)/(max_time)))
 #define LOWER_TIME_BOUND 5000000
+#define MAX_OUTPUT_BRIGHTNESS 255
+#define REFRESH_LCD_RATE 100000
 
 enum GAMESTATUS{
   OFF = 0,
@@ -28,6 +31,8 @@ enum GAMESTATUS{
 GAMESTATUS status = READY;
 
 long score = 0;
+int current_loading_screen_brightness = 0;
+int increasing_bright = 1;
 int difficulty = 0;
 int flagState = 1;
 long timeOff = 0;
@@ -47,7 +52,7 @@ LiquidCrystal_I2C lcd(0x27,20,4);
 void start_beginning_timer(int restarting=0){
   timeOff = 0;
   if(status == READY) {
-    Timer1.initialize(TICK_PER_SECOND); 
+    Timer1.initialize(TICK_LED_OUTPUT); 
     Timer1.attachInterrupt(check_status_loop);
   }
   else if(status == RUNNING){
@@ -65,18 +70,21 @@ void start_beginning_timer(int restarting=0){
 
 //funzioni di display dello schermo lcd
 void display_starting_screen(){
+   
   lcd.clear();
   lcd.setCursor(2,0);
   lcd.print("Welcome to GMB!");
   lcd.setCursor(1,1);
   lcd.print("Press B1 to start.");
   lcd.setCursor(1,2);
-  
+
   char* difficulty_display = "Difficulty:";
   lcd.setCursor(1,3);
   lcd.print(difficulty_display);
   //lcd.setCursor(12,3);
   lcd.print(difficulty+1);
+
+
 }
 
 void animate_start_round(){
@@ -226,12 +234,13 @@ void check_off(){
 //
 
 void  check_status_loop(){
-  if (!flagState){
-    digitalWrite(LED_OUTPUT, HIGH);  
-  } else {
-    digitalWrite(LED_OUTPUT, LOW);  
+  if(current_loading_screen_brightness + increasing_bright > MAX_OUTPUT_BRIGHTNESS || current_loading_screen_brightness + increasing_bright < 0){
+    increasing_bright*=-1;
   }
-  timeOff+=TICK_PER_SECOND;
+
+  current_loading_screen_brightness+=increasing_bright;
+  analogWrite(LED_OUTPUT, current_loading_screen_brightness);  
+  timeOff+=TICK_LED_OUTPUT;
   flagState = !flagState; 
 }
 
@@ -241,8 +250,6 @@ void running_status_loop(){
     refresh_seconds = 1;
   }
 }
-
-
 
 int getGuessChanges(){
   int sum = 0;
